@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>National Fuel Pass Generator</title>
+    <title>National Fuel Pass Generator - Beelix</title>
     
     <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -18,6 +18,7 @@
             --border-color: #dcdde1;
             --error-red: #ff4757;
             --text-muted: #636e72;
+            --success-green: #2ecc71;
         }
 
         body {
@@ -94,7 +95,6 @@
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 16px;
-            transition: border 0.2s;
         }
 
         .is-invalid {
@@ -125,6 +125,7 @@
             cursor: pointer;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
         }
 
         .row { display: flex; gap: 10px; }
@@ -142,7 +143,8 @@
             color: var(--accent-blue);
         }
 
-        .file-upload-wrapper { display: flex; gap: 10px; align-items: center; }
+        /* Updated File/Camera Wrapper */
+        .file-upload-wrapper { display: flex; gap: 8px; align-items: center; }
         .file-display {
             flex: 1;
             background: var(--light-grey);
@@ -154,15 +156,20 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .file-btn {
-            background: var(--dark-grey);
+        .file-btn, .cam-btn {
             color: white;
-            padding: 12px 15px;
+            padding: 12px 12px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
             font-size: 13px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        .file-btn { background: var(--dark-grey); }
+        .cam-btn { background: var(--accent-blue); }
         input[type="file"] { display: none; }
 
         .preview-label {
@@ -198,7 +205,6 @@
             text-align: center;
             font-weight: 700;
             font-size: 18px;
-            letter-spacing: 0.5px;
         }
 
         .card-body {
@@ -248,10 +254,34 @@
             font-weight: bold;
             margin-top: 30px;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(56, 103, 214, 0.3);
         }
 
-        /* Footer Policy Styling */
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        #video-preview {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+            margin-bottom: 15px;
+        }
+
         .site-footer {
             width: 100%;
             background: white;
@@ -260,47 +290,13 @@
             border-top: 1px solid var(--border-color);
             text-align: center;
         }
-        .policy-container {
-            max-width: 450px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        .policy-icon {
-            font-size: 24px;
-            margin-bottom: 10px;
-            display: block;
-        }
         .policy-text {
             font-size: 13px;
             line-height: 1.6;
             color: var(--text-muted);
-            font-style: italic;
-        }
-        .policy-brand {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-            color: var(--dark-grey);
-            font-size: 14px;
-            font-style: normal;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            justify-content: center;
-            align-items: center;
-            z-index: 3000;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            width: 90%;
             max-width: 400px;
-            text-align: center;
+            margin: 10px auto;
+            padding: 0 20px;
         }
     </style>
 </head>
@@ -329,29 +325,7 @@
         </div>
 
         <div id="vehicle-holder">
-            <div class="vehicle-entry" data-index="0">
-                <div class="row">
-                    <div class="input-group">
-                        <label class="ui-label-vno">Vehicle 1 No.</label>
-                        <input type="text" class="v-no" placeholder="ABC-0000" oninput="updateCards(); validateField(this)">
-                    </div>
-                    <div class="input-group">
-                        <label class="ui-label-fuel">Fuel Type</label>
-                        <select class="v-fuel" onchange="updateCards()">
-                            <option value="Petrol" class="ui-opt-petrol">Petrol</option>
-                            <option value="Diesel" class="ui-opt-diesel">Diesel</option>
-                        </select>
-                    </div>
-                </div>
-
-                <label class="ui-label-qrupload">QR Image Upload</label>
-                <div class="file-upload-wrapper">
-                    <div class="file-display v-file-name" id="ui-default-file">No file selected</div>
-                    <label for="upload-0" class="file-btn ui-btn-choose">Choose File</label>
-                    <input type="file" id="upload-0" class="v-upload" accept="image/*" onchange="handleQRUpload(this, 0)">
-                </div>
             </div>
-        </div>
 
         <button class="add-btn" id="add-vehicle-btn" onclick="addVehicle()">+ Add Another Vehicle</button>
 
@@ -361,38 +335,43 @@
         <button class="download-btn" id="ui-btn-download" onclick="handleDownloadRequest()">Download</button>
     </div>
 
-    <footer class="site-footer">
-        <div class="policy-container">
-            <span class="policy-icon">🛡️</span>
-            <p class="policy-text" id="ui-policy-text">
-                As Beelix Solutions, we do not collect, store, or transmit any of your personal data. 
-                All processing happens locally on your device. This is a service free of charge provided by us to the Sri Lankan society.
-            </p>
-            <span class="policy-brand">Beelix Solutions</span>
+    <div class="modal" id="cameraModal">
+        <div class="modal-content">
+            <h3 id="ui-cam-title">Scan QR Code</h3>
+            <video id="video-preview" playsinline></video>
+            <button class="modal-btn" style="background:#95a5a6; color:white; width:100%; padding:10px; border:none; border-radius:8px; cursor:pointer;" onclick="stopCamera()">Cancel</button>
+            <canvas id="qr-canvas" style="display: none;"></canvas>
         </div>
-    </footer>
+    </div>
 
     <div class="modal" id="downloadModal">
         <div class="modal-content">
             <h3 id="ui-modal-title">Download Formats</h3>
             <p id="ui-modal-desc">Select how you wish to output the pass(es):</p>
-            <button class="modal-btn btn-pdf" id="ui-btn-pdf" style="background:#e74c3c; color:white; width:100%; padding:15px; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px; cursor:pointer;" onclick="processDownload('pdf')">A4 PDF</button>
-            <button class="modal-btn btn-img" id="ui-btn-img" style="background:#2ecc71; color:white; width:100%; padding:15px; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px; cursor:pointer;" onclick="processDownload('img')">Images</button>
-            <button class="modal-btn btn-cancel" id="ui-btn-cancel" style="background:#95a5a6; color:white; width:100%; padding:10px; border:none; border-radius:8px; cursor:pointer;" onclick="closeDownloadModal()">Cancel</button>
+            <button class="modal-btn" id="ui-btn-pdf" style="background:#e74c3c; color:white; width:100%; padding:15px; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px; cursor:pointer;" onclick="processDownload('pdf')">A4 PDF</button>
+            <button class="modal-btn" id="ui-btn-img" style="background:#2ecc71; color:white; width:100%; padding:15px; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px; cursor:pointer;" onclick="processDownload('img')">Images</button>
+            <button class="modal-btn" id="ui-btn-cancel" style="background:#95a5a6; color:white; width:100%; padding:10px; border:none; border-radius:8px; cursor:pointer;" onclick="closeDownloadModal()">Cancel</button>
         </div>
     </div>
 
-    <script>
+    <footer class="site-footer">
+        <div class="policy-container">
+            <span class="policy-icon">🛡️</span>
+            <p class="policy-text" id="ui-policy-text">
+                As Beelix Solutions, we do not collect, store, or transmit any of your personal data. 
+                All processing happens locally on your device.
+            </p>
+            <span style="font-weight: bold;">Beelix Solutions</span>
+        </div>
+    </footer>
 
-        // Developer Credits
-        console.log("%cDeveloped by Kasun Jayamaha", "color: #d32f2f; font-size: 20px; font-weight: bold;");
-        console.log("Contact: kasunjayamaha.dev@gmail.com");
+    <script>
         const i18n = {
             en: {
                 title: "NATIONAL FUEL PASS", subtitle: "generator",
                 owner: "Owner's Name", phone: "Phone No.", vno: "Vehicle No.",
                 fuel: "Fuel Type", petrol: "Petrol", diesel: "Diesel",
-                qrupload: "QR Image Upload", choose: "Choose File", 
+                qrupload: "QR Image Upload", choose: "File", cam: "📷 Scan",
                 noFile: "No file selected", add: "+ Add Another Vehicle",
                 preview: "Live Preview", download: "Download",
                 modalTitle: "Download Formats", modalDesc: "Select output format:",
@@ -400,13 +379,14 @@
                 cancel: "Cancel", cardOwner: "Owner Name", cardVno: "Vehicle No",
                 cardPhone: "Phone No", cardFuel: "Fuel Type", poweredBy: "powered by",
                 errMsg: "Please fill all fields and upload the QR codes correctly.",
+                camTitle: "Scan QR Code", camError: "Camera access denied.",
                 policy: "As Beelix Solutions, we do not collect, store, or transmit any of your personal data. All processing happens locally on your device. This is a service free of charge provided by us to the Sri Lankan society."
             },
             si: {
                 title: "ජාතික ඉන්ධන බලපත්‍රය", subtitle: "නිර්මාණය කරන්න",
                 owner: "අයිතිකරුගේ නම", phone: "දුරකථන අංකය", vno: "වාහන අංකය",
                 fuel: "ඉන්ධන වර්ගය", petrol: "පෙට්‍රල්", diesel: "ඩීසල්",
-                qrupload: "QR කේතය ඇතුලත් කරන්න", choose: "තෝරන්න", 
+                qrupload: "QR කේතය ඇතුලත් කරන්න", choose: "ගොනුව", cam: "📷 ස්කෑන්",
                 noFile: "ගොනුවක් තෝරා නැත", add: "+ තවත් වාහනයක් එක් කරන්න",
                 preview: "පෙරදසුන", download: "බාගත කරන්න",
                 modalTitle: "බාගත කිරීමේ ක්‍රමය", modalDesc: "අවශ්‍ය ආකාරය තෝරන්න:",
@@ -414,13 +394,14 @@
                 cancel: "අවලංගු කරන්න", cardOwner: "අයිතිකරුගේ නම", cardVno: "වාහන අංකය",
                 cardPhone: "දුරකථන අංකය", cardFuel: "ඉන්ධන වර්ගය", poweredBy: "සහාය",
                 errMsg: "කරුණාකර සියලු විස්තර පුරවා QR කේතය ඇතුළත් කරන්න.",
-                policy: "Beelix Solutions ලෙස, අපි ඔබගේ කිසිදු පෞද්ගලික දත්තයක් රැස් කිරීම, ගබඩා කිරීම හෝ ලබා ගැනීම සිදු නොකරමු. සියලුම ක්‍රියාවලීන් ඔබගේ උපාංගය තුලම සිදු වේ. මෙය අප විසින් ශ්‍රී ලාංකික සමාජය වෙනුවෙන් නොමිලේ සපයන සේවාවකි."
+                camTitle: "QR කේතය ස්කෑන් කරන්න", camError: "කැමරා අවසරය ලබා දී නොමැත.",
+                policy: "Beelix Solutions ලෙස, අපි ඔබගේ කිසිදු පෞද්ගලික දත්තයක් රැස් කිරීම, ගබඩා කිරීම හෝ ලබා ගැනීම සිදු නොකරමු. සියලුම ක්‍රියාවලීන් ඔබගේ උපාංගය තුලම සිදු වේ."
             },
             ta: {
                 title: "தேசிய எரிபொருள் அனுமதி", subtitle: "உருவாக்கி",
                 owner: "உரிமையாளர் பெயர்", phone: "தொலைபேசி எண்", vno: "வாகன எண்",
                 fuel: "எரிபொருள் வகை", petrol: "பெட்ரோல்", diesel: "டீசல்",
-                qrupload: "QR படத்தை பதிவேற்றவும்", choose: "தேர்வு செய்", 
+                qrupload: "QR படத்தை பதிவேற்றவும்", choose: "கோப்பு", cam: "📷 ஸ்கேன்",
                 noFile: "கோப்பு எதுவும் தேர்ந்தெடுக்கப்படவில்லை", add: "+ மற்றொரு வாகனத்தைச் சேர்க்கவும்",
                 preview: "முன்னோட்டம்", download: "பதிவிறக்கம்",
                 modalTitle: "பதிவிறக்க வடிவங்கள்", modalDesc: "வெளியீட்டு வடிவமைப்பைத் தேர்ந்தெடுக்கவும்:",
@@ -428,15 +409,18 @@
                 cancel: "ரத்து செய்", cardOwner: "பெயர்", cardVno: "வாகன எண்",
                 cardPhone: "தொலைபேசி எண்", cardFuel: "எரிபொருள் வகை", poweredBy: "ஆதரவு",
                 errMsg: "அனைத்து புலங்களையும் பூர்த்தி செய்து QR குறியீட்டைப் பதிவேற்றவும்.",
-                policy: "Beelix Solutions என்ற முறையில், உங்களின் தனிப்பட்ட தரவு எதையும் நாங்கள் சேகரிக்கவோ, சேமிக்கவோ அல்லது பகிரவோ மாட்டோம். அனைத்து செயல்பாடுகளும் உங்கள் சாதனத்திலேயே நடக்கும். இது இலங்கை சமூகத்திற்காக எங்களால் வழங்கப்படும் இலவச சேவையாகும்."
+                camTitle: "QR குறியீட்டை ஸ்கேன் செய்யவும்", camError: "கேமரா அனுமதி மறுக்கப்பட்டது.",
+                policy: "Beelix Solutions என்ற முறையில், உங்களின் தனிப்பட்ட தரவு எதையும் நாங்கள் சேகரிக்கவோ, சேமிக்கவோ அல்லது பகிரவோ மாட்டோம்."
             }
         };
 
         let currentLang = 'en';
-        let vehicleCount = 1;
+        let vehicleCount = 0;
         const maxVehicles = 6;
         const defaultBlankQR = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-        let qrDataStore = { 0: defaultBlankQR };
+        let qrDataStore = {};
+        let videoStream = null;
+        let activeScanningIndex = null;
 
         function setLanguage(lang) {
             currentLang = lang;
@@ -450,46 +434,15 @@
             document.getElementById('ui-preview-heading').innerText = i18n[lang].preview;
             document.getElementById('ui-btn-download').innerText = i18n[lang].download;
             document.getElementById('ui-policy-text').innerText = i18n[lang].policy;
-            
             document.getElementById('ui-modal-title').innerText = i18n[lang].modalTitle;
             document.getElementById('ui-modal-desc').innerText = i18n[lang].modalDesc;
             document.getElementById('ui-btn-pdf').innerText = i18n[lang].btnPdf;
             document.getElementById('ui-btn-img').innerText = i18n[lang].btnImg;
             document.getElementById('ui-btn-cancel').innerText = i18n[lang].cancel;
+            document.getElementById('ui-cam-title').innerText = i18n[lang].camTitle;
 
             renumberVehicles();
             updateCards();
-        }
-
-        function validateField(el) {
-            if (el.value.trim() !== "") {
-                el.classList.remove('is-invalid');
-            }
-            updateCards();
-        }
-
-        function handleDownloadRequest() {
-            let isValid = true;
-            const owner = document.getElementById('owner');
-            const phone = document.getElementById('phone');
-
-            if (!owner.value.trim()) { owner.classList.add('is-invalid'); isValid = false; }
-            if (!phone.value.trim()) { phone.classList.add('is-invalid'); isValid = false; }
-
-            document.querySelectorAll('.vehicle-entry').forEach(entry => {
-                const index = entry.getAttribute('data-index');
-                const vNoInput = entry.querySelector('.v-no');
-                const fileDisplay = entry.querySelector('.file-display');
-
-                if (!vNoInput.value.trim()) { vNoInput.classList.add('is-invalid'); isValid = false; }
-                if (qrDataStore[index] === defaultBlankQR) { fileDisplay.classList.add('is-invalid'); isValid = false; }
-            });
-
-            if (!isValid) {
-                alert(i18n[currentLang].errMsg);
-                return;
-            }
-            openDownloadModal();
         }
 
         function addVehicle() {
@@ -503,11 +456,11 @@
                 <button class="remove-vehicle-btn" onclick="removeVehicle(${index})">×</button>
                 <div class="row">
                     <div class="input-group">
-                        <label class="ui-label-vno">Vehicle ${index + 1} No.</label>
+                        <label class="ui-label-vno">${i18n[currentLang].vno} ${index + 1}</label>
                         <input type="text" class="v-no" placeholder="ABC-0000" oninput="updateCards(); validateField(this)">
                     </div>
                     <div class="input-group">
-                        <label class="ui-label-fuel">Fuel Type</label>
+                        <label class="ui-label-fuel">${i18n[currentLang].fuel}</label>
                         <select class="v-fuel" onchange="updateCards()">
                             <option value="Petrol">${i18n[currentLang].petrol}</option>
                             <option value="Diesel">${i18n[currentLang].diesel}</option>
@@ -517,6 +470,7 @@
                 <label class="ui-label-qrupload">${i18n[currentLang].qrupload}</label>
                 <div class="file-upload-wrapper">
                     <div class="file-display v-file-name">${i18n[currentLang].noFile}</div>
+                    <button class="cam-btn" onclick="startCamera(${index})">${i18n[currentLang].cam}</button>
                     <label for="upload-${index}" class="file-btn">${i18n[currentLang].choose}</label>
                     <input type="file" id="upload-${index}" class="v-upload" accept="image/*" onchange="handleQRUpload(this, ${index})">
                 </div>
@@ -547,6 +501,7 @@
                 entry.querySelector('.ui-label-vno').innerText = `${i18n[currentLang].vno} ${i + 1}`;
                 entry.querySelector('.ui-label-fuel').innerText = i18n[currentLang].fuel;
                 entry.querySelector('.ui-label-qrupload').innerText = i18n[currentLang].qrupload;
+                entry.querySelector('.cam-btn').innerText = i18n[currentLang].cam;
                 entry.querySelector('.file-btn').innerText = i18n[currentLang].choose;
                 
                 const select = entry.querySelector('.v-fuel');
@@ -588,6 +543,68 @@
             });
         }
 
+        // --- Camera Logic ---
+        async function startCamera(index) {
+            activeScanningIndex = index;
+            const video = document.getElementById('video-preview');
+            document.getElementById('cameraModal').style.display = 'flex';
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                video.srcObject = videoStream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                requestAnimationFrame(scanFrame);
+            } catch (err) {
+                alert(i18n[currentLang].camError);
+                stopCamera();
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            document.getElementById('cameraModal').style.display = 'none';
+        }
+
+        function scanFrame() {
+            const video = document.getElementById('video-preview');
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                const canvasElement = document.getElementById('qr-canvas');
+                const canvas = canvasElement.getContext('2d', { willReadFrequently: true });
+                canvasElement.height = video.videoHeight;
+                canvasElement.width = video.videoWidth;
+                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                
+                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (code) {
+                    // Extract QR area
+                    const dim = (code.location.topRightCorner.x - code.location.topLeftCorner.x) + 40;
+                    const finalCanvas = document.createElement("canvas");
+                    finalCanvas.width = dim; finalCanvas.height = dim;
+                    finalCanvas.getContext("2d").drawImage(video, code.location.topLeftCorner.x - 20, code.location.topLeftCorner.y - 20, dim, dim, 0, 0, dim, dim);
+                    
+                    qrDataStore[activeScanningIndex] = finalCanvas.toDataURL();
+                    
+                    const entry = document.querySelector(`.vehicle-entry[data-index="${activeScanningIndex}"]`);
+                    entry.querySelector('.v-file-name').innerText = "QR Scanned Successfully";
+                    entry.querySelector('.v-file-name').classList.remove('is-invalid');
+
+                    updateCards();
+                    stopCamera();
+                    return;
+                }
+            }
+            if (videoStream) requestAnimationFrame(scanFrame);
+        }
+
+        // --- Standard Upload ---
         function handleQRUpload(input, index) {
             const file = input.files[0];
             if (!file) return;
@@ -617,15 +634,37 @@
             };
         }
 
-        function openDownloadModal() { document.getElementById('downloadModal').style.display = 'flex'; }
+        function validateField(el) {
+            if (el.value.trim() !== "") el.classList.remove('is-invalid');
+            updateCards();
+        }
+
+        function handleDownloadRequest() {
+            let isValid = true;
+            const owner = document.getElementById('owner');
+            const phone = document.getElementById('phone');
+            if (!owner.value.trim()) { owner.classList.add('is-invalid'); isValid = false; }
+            if (!phone.value.trim()) { phone.classList.add('is-invalid'); isValid = false; }
+
+            document.querySelectorAll('.vehicle-entry').forEach(entry => {
+                const index = entry.getAttribute('data-index');
+                const vNoInput = entry.querySelector('.v-no');
+                const fileDisplay = entry.querySelector('.v-file-name');
+                if (!vNoInput.value.trim()) { vNoInput.classList.add('is-invalid'); isValid = false; }
+                if (qrDataStore[index] === defaultBlankQR) { fileDisplay.classList.add('is-invalid'); isValid = false; }
+            });
+
+            if (!isValid) { alert(i18n[currentLang].errMsg); return; }
+            document.getElementById('downloadModal').style.display = 'flex';
+        }
+
         function closeDownloadModal() { document.getElementById('downloadModal').style.display = 'none'; }
 
         async function processDownload(type) {
             closeDownloadModal();
             const cards = document.querySelectorAll('.fuel-card');
             const btn = document.getElementById('ui-btn-download');
-            btn.innerText = "...";
-            btn.disabled = true;
+            btn.innerText = "..."; btn.disabled = true;
 
             try {
                 if (type === 'pdf') {
@@ -638,10 +677,10 @@
                     }
                     pdf.save("FuelPasses.pdf");
                 } else {
-                    for (let card of cards) {
-                        const canvas = await html2canvas(card, { scale: 3, useCORS: true });
+                    for (let i = 0; i < cards.length; i++) {
+                        const canvas = await html2canvas(cards[i], { scale: 3, useCORS: true });
                         const link = document.createElement("a");
-                        link.download = `FuelPass.png`;
+                        link.download = `FuelPass_${i+1}.png`;
                         link.href = canvas.toDataURL();
                         link.click();
                     }
@@ -656,7 +695,11 @@
 
         document.getElementById('owner').addEventListener('input', updateCards);
         document.getElementById('phone').addEventListener('input', updateCards);
-        window.onload = updateCards;
+        
+        window.onload = () => {
+            addVehicle(); // Start with one vehicle
+            updateCards();
+        };
     </script>
 </body>
 </html>
